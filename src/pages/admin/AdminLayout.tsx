@@ -1,5 +1,5 @@
-import { useMemo, useState } from "react";
-import { Link, NavLink, Outlet } from "react-router-dom";
+import { useEffect, useMemo, useState } from "react";
+import { Link, NavLink, Outlet, useLocation } from "react-router-dom";
 import {
   LayoutDashboard,
   BookOpen,
@@ -19,13 +19,20 @@ import {
 import type { LucideIcon } from "lucide-react";
 import { useAuth } from "@/hooks/useAuth";
 import { AddPackageButton } from "@/components/AddPackageButton";
+import { useAgentUnreadStore } from "@/hooks/useAgentUnreadStore";
+import type { AgentNotificationType } from "@/lib/interface";
 
 type MenuItem = {
   title: string;
   url: string;
   icon: LucideIcon;
   roles: string[];
+  /** Agents see a count of new items of this type next to the link. */
+  unreadType?: AgentNotificationType;
 };
+
+const AGENT_BOOKINGS_PATH = "/admin/bookings";
+const MAX_BADGE = 9;
 
 const menuItems: MenuItem[] = [
   {
@@ -36,9 +43,10 @@ const menuItems: MenuItem[] = [
   },
   {
     title: "Bookings",
-    url: "/admin/bookings",
+    url: AGENT_BOOKINGS_PATH,
     icon: BookOpen,
     roles: ["admin", "agent"],
+    unreadType: "booking",
   },
   {
     title: "Contacts",
@@ -87,6 +95,17 @@ const menuItems: MenuItem[] = [
 export default function AdminLayout() {
   const [open, setOpen] = useState(false);
   const { isLoggedIn, user, logout } = useAuth();
+  const { pathname } = useLocation();
+  const isAgent = user?.role === "agent";
+  const unreadByType = useAgentUnreadStore((state) => state.unreadByType);
+  const markRead = useAgentUnreadStore((state) => state.markRead);
+  const unreadBookings = unreadByType.booking;
+
+  // Opening the Bookings page counts as seeing the new bookings.
+  useEffect(() => {
+    if (!isAgent || unreadBookings === 0 || !pathname.startsWith(AGENT_BOOKINGS_PATH)) return;
+    markRead("booking").catch((err: unknown) => console.warn("Marking bookings seen failed", err));
+  }, [isAgent, unreadBookings, pathname, markRead]);
 
   const visibleMenu = useMemo(
     () => menuItems.filter((item) => user?.role && item.roles.includes(user.role)),
@@ -96,7 +115,9 @@ export default function AdminLayout() {
   const SidebarBody = () => (
     <>
       <nav className="flex-1 space-y-1">
-        {visibleMenu.map(({ title, url, icon: Icon }) => (
+        {visibleMenu.map(({ title, url, icon: Icon, unreadType }) => {
+          const unread = isAgent && unreadType ? unreadByType[unreadType] : 0;
+          return (
           <NavLink
             key={url}
             to={url}
@@ -107,9 +128,18 @@ export default function AdminLayout() {
             }
           >
             <Icon size={18} />
-            {title}
+            <span className="flex-1">{title}</span>
+            {unread > 0 && (
+              <span
+                className="min-w-[20px] h-5 px-1.5 rounded-full bg-red-600 text-white text-[11px] fw-semibold leading-5 text-center"
+                aria-label={`${unread} new`}
+              >
+                {unread > MAX_BADGE ? `${MAX_BADGE}+` : unread}
+              </span>
+            )}
           </NavLink>
-        ))}
+          );
+        })}
       </nav>
 
       {user?.role === "agent" && (

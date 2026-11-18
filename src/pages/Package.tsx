@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
-import { packagePath } from "@/lib/routes";
+import { Link, useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { REVIEW_FOCUS_PARAM, packagePath } from "@/lib/routes";
 import {
   Clock,
   MapPin,
@@ -108,6 +108,7 @@ function toDateInputValue(date: Date) {
 export default function PackagePage() {
   // Route param is the package slug; numeric ids from older links still resolve and get redirected.
   const { id } = useParams<{ id: string }>();
+  const [searchParams] = useSearchParams();
   const navigate = useNavigate();
   const [pkg, setPkg] = useState<PackageInterface | null>(null);
   const [related, setRelated] = useState<PackageInterface[]>([]);
@@ -188,7 +189,6 @@ export default function PackagePage() {
     );
   }
 
-  const mainImage = images[0].src;
   // const packagePrice = pkg.price != null && Number(pkg.price) > 0 ? Number(pkg.price) * guests : null;
   const pricing =
     pkg.price != null && Number(pkg.price) > 0
@@ -212,7 +212,6 @@ export default function PackagePage() {
       <SEO
         title={seoTitle}
         description={plainDescription.slice(0, 160) || seoDescription}
-        image={mainImage}
         canonical={packagePath(pkg)}
         type="product"
         jsonLd={{
@@ -468,7 +467,12 @@ export default function PackagePage() {
         </section>
 
         {/* Ratings & reviews are visible to logged-in users only. */}
-        {isLoggedIn && <PackageReviews packageId={pkg.id} />}
+        {isLoggedIn && (
+          <PackageReviews
+            packageId={pkg.id}
+            focusReviewId={Number(searchParams.get(REVIEW_FOCUS_PARAM)) || null}
+          />
+        )}
 
         {/* Related */}
         {related.length > 0 && (

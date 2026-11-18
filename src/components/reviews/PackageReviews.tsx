@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Loader2, Star } from "lucide-react";
 import { toast } from "sonner";
 import { ConfirmDeleteDialog } from "@/components/reviews/ConfirmDeleteDialog";
@@ -17,8 +17,17 @@ const text = packageText.reviews;
 const PAGE_SIZE = 5;
 const STAR_VALUES = [5, 4, 3, 2, 1] as const;
 
-export function PackageReviews({ packageId }: { packageId: number }) {
+interface PackageReviewsProps {
+  packageId: number;
+  /** Review to scroll to, highlight and open the reply box on (e.g. from the partner's notification bell). */
+  focusReviewId?: number | null;
+}
+
+export function PackageReviews({ packageId, focusReviewId = null }: PackageReviewsProps) {
   const user = useAuth((s) => s.user);
+  // The focused review may sit beyond the first page, so it is fetched on its own and pinned on top.
+  const [pinnedReview, setPinnedReview] = useState<ReviewInterface | null>(null);
+  const scrolledToRef = useRef<number | null>(null);
   const [data, setData] = useState<PackageReviewsResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isLoadingMore, setIsLoadingMore] = useState(false);
@@ -49,6 +58,39 @@ export function PackageReviews({ packageId }: { packageId: number }) {
   useEffect(() => {
     loadFirstPage();
   }, [loadFirstPage]);
+
+  useEffect(() => {
+    if (!data || !focusReviewId) {
+      setPinnedReview(null);
+      return;
+    }
+    const isLoaded = data.my_review?.id === focusReviewId || data.reviews.some((r) => r.id === focusReviewId);
+    if (isLoaded) {
+      setPinnedReview(null);
+      return;
+    }
+    let cancelled = false;
+    GET<{ review: ReviewInterface }>(API.REVIEW.GET_BY_ID(focusReviewId))
+      .then((res) => {
+        if (!cancelled && res.review.package_id === packageId) setPinnedReview(res.review);
+      })
+      .catch((err: unknown) => {
+        // A deleted review simply is not highlighted; the rest of the list still shows.
+        console.warn("Focused review could not be loaded", err);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [data, focusReviewId, packageId]);
+
+  // Scroll once per focused review, after it has rendered.
+  useEffect(() => {
+    if (!focusReviewId || scrolledToRef.current === focusReviewId) return;
+    const element = document.getElementById(`review-${focusReviewId}`);
+    if (!element) return;
+    scrolledToRef.current = focusReviewId;
+    element.scrollIntoView({ behavior: "smooth", block: "center" });
+  });
 
   const loadMore = async () => {
     if (!data) return;
@@ -85,7 +127,8 @@ export function PackageReviews({ packageId }: { packageId: number }) {
 
   const isAdmin = user?.role === "admin";
   const myReview = data?.my_review ?? null;
-  const otherReviews = data?.reviews.filter((r) => r.id !== myReview?.id) ?? [];
+  const listedReviews = data?.reviews.filter((r) => r.id !== myReview?.id && r.id !== pinnedReview?.id) ?? [];
+  const otherReviews = pinnedReview ? [pinnedReview, ...listedReviews] : listedReviews;
   const canReview = data?.permissions.can_review ?? false;
   const canReply = data?.permissions.can_reply ?? false;
   const summary = data?.summary;
@@ -161,6 +204,7 @@ export function PackageReviews({ packageId }: { packageId: number }) {
               <ReviewCard
                 review={myReview}
                 isMine
+                isFocused={myReview.id === focusReviewId}
                 canReply={canReply}
                 onDelete={() => setDeleteTarget(myReview)}
               />
@@ -174,6 +218,7 @@ export function PackageReviews({ packageId }: { packageId: number }) {
               <ReviewCard
                 key={review.id}
                 review={review}
+                isFocused={review.id === focusReviewId}
                 canReply={canReply}
                 onDelete={isAdmin ? () => setDeleteTarget(review) : undefined}
               />

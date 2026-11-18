@@ -14,6 +14,8 @@ export const SITE_NAME = "MyTravelTown";
 export const SITE_URL = (import.meta.env.VITE_SITE_URL as string | undefined) ?? "https://mytraveltown.com";
 const DEFAULT_DESCRIPTION =
   "Discover and book domestic and international travel packages from verified partners on MyTravelTown.";
+/** Main MyTravelTown logo, served from /public so the social preview URL stays stable across builds. */
+export const DEFAULT_OG_IMAGE = "/mytraveltown-logo.png";
 
 type JsonLd = Record<string, unknown>;
 
@@ -36,7 +38,7 @@ const toAbsolute = (value: string) =>
 export function SEO({
   title,
   description = DEFAULT_DESCRIPTION,
-  image,
+  image = DEFAULT_OG_IMAGE,
   canonical,
   noIndex = false,
   type = "website",
@@ -48,7 +50,7 @@ export function SEO({
   const fullTitle =
     !appendSiteName || title.includes(SITE_NAME) ? title : `${title} | ${SITE_NAME}`;
   const canonicalUrl = canonical ? toAbsolute(canonical) : undefined;
-  const imageUrl = image ? toAbsolute(image) : undefined;
+  const imageUrl = toAbsolute(image);
 
   return (
     <Helmet>
@@ -62,12 +64,13 @@ export function SEO({
       <meta property="og:title" content={fullTitle} />
       <meta property="og:description" content={description} />
       {canonicalUrl && <meta property="og:url" content={canonicalUrl} />}
-      {imageUrl && <meta property="og:image" content={imageUrl} />}
+      <meta property="og:image" content={imageUrl} />
+      <meta property="og:image:alt" content={SITE_NAME} />
 
-      <meta name="twitter:card" content={imageUrl ? "summary_large_image" : "summary"} />
+      <meta name="twitter:card" content="summary_large_image" />
       <meta name="twitter:title" content={fullTitle} />
       <meta name="twitter:description" content={description} />
-      {imageUrl && <meta name="twitter:image" content={imageUrl} />}
+      <meta name="twitter:image" content={imageUrl} />
 
       {jsonLd && <script type="application/ld+json">{JSON.stringify(jsonLd)}</script>}
     </Helmet>

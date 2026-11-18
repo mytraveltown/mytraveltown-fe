@@ -15,13 +15,15 @@ const text = packageText.reviews;
 interface ReviewCardProps {
   review: ReviewInterface;
   isMine?: boolean;
+  /** Opened from a deep link: highlighted, with the reply box ready. */
+  isFocused?: boolean;
   /** Whether the viewer may reply (admin or the package's travel partner). */
   canReply?: boolean;
   /** Shown only when provided (author or admin). */
   onDelete?: () => void;
 }
 
-export function ReviewCard({ review, isMine = false, canReply = false, onDelete }: ReviewCardProps) {
+export function ReviewCard({ review, isMine = false, isFocused = false, canReply = false, onDelete }: ReviewCardProps) {
   const [lightboxIndex, setLightboxIndex] = useState<number | null>(null);
   const images = review.media
     .filter((m) => m.media_type === "image")
@@ -29,7 +31,12 @@ export function ReviewCard({ review, isMine = false, canReply = false, onDelete 
   const videos = review.media.filter((m) => m.media_type === "video");
 
   return (
-    <article className={`rounded-2xl border p-5 ${isMine ? "bg-primary/5 border-primary/30" : "bg-card"}`}>
+    <article
+      id={`review-${review.id}`}
+      className={`scroll-mt-24 rounded-2xl border p-5 ${isMine ? "bg-primary/5 border-primary/30" : "bg-card"} ${
+        isFocused ? "ring-2 ring-primary ring-offset-2" : ""
+      }`}
+    >
       <header className="flex items-start gap-3">
         <Avatar className="size-10">
           <AvatarImage src={profileUrl(review.user_profile ?? "")} alt={review.user_name} />
@@ -92,7 +99,12 @@ export function ReviewCard({ review, isMine = false, canReply = false, onDelete 
         </div>
       )}
 
-      <ReviewReplies reviewId={review.id} initialReplies={review.replies} canReply={canReply} />
+      <ReviewReplies
+        reviewId={review.id}
+        initialReplies={review.replies}
+        canReply={canReply}
+        defaultFormOpen={isFocused}
+      />
 
       {lightboxIndex !== null && (
         <ImageLightbox

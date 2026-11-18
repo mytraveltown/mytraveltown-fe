@@ -278,6 +278,48 @@ export type PackageReviewsResponse = {
   pagination: PaginationMeta;
 };
 
+type AgentNotificationBase = {
+  /** Unique across types, e.g. "review-12" or "booking-64". */
+  id: string;
+  /** The review or booking id. */
+  ref_id: number;
+  created_at: string;
+  package_id: number;
+  package_slug: string | null;
+  package_name: string;
+  /** Reviewer or the traveller who booked. */
+  actor_name: string;
+  actor_profile: string | null;
+  is_unread: boolean;
+};
+
+export type ReviewNotificationInterface = AgentNotificationBase & {
+  type: "review";
+  rating: number;
+  /** The partner has already replied to this review. */
+  has_replied: boolean;
+};
+
+export type BookingNotificationInterface = AgentNotificationBase & {
+  type: "booking";
+  /** YYYY-MM-DD */
+  travel_date: string;
+  guests: number;
+  amount: number;
+};
+
+/** An item in the travel partner's header bell. */
+export type AgentNotificationInterface = ReviewNotificationInterface | BookingNotificationInterface;
+
+export type AgentNotificationType = AgentNotificationInterface["type"];
+
+export type AgentNotificationsResponse = {
+  items: AgentNotificationInterface[];
+  unread_count: number;
+  unread_by_type: Record<AgentNotificationType, number>;
+  pagination: PaginationMeta;
+};
+
 /** A finished trip the traveller is invited to review (GET /reviews/prompt). Dates are YYYY-MM-DD. */
 export type ReviewPromptInterface = {
   booking_id: number;

@@ -3,12 +3,14 @@ import { layoutText, commonText } from "@/lib/text";
 import { Search, MapPin, Menu, X, LogOut, ChevronRight, Heart } from "lucide-react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/hooks/useAuth";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { profileUrl } from "@/lib/utils";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import logo from "@/assets/mytraveltown-logo.png";
 import { ROUTES } from "@/lib/routes";
 import { PartnerCta } from "@/components/site/PartnerCta";
 import { AddPackageButton } from "@/components/AddPackageButton";
+import { AgentNotificationBell } from "@/components/AgentNotificationBell";
 
 export function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
@@ -23,6 +25,7 @@ export function Header() {
 
   const isAdmin = user?.role === "admin";
   const isAgent = isLoggedIn && user?.role === "agent";
+  const isMobile = useIsMobile();
   // Visitors and regular users can apply; agents and admins are already partners.
   const showPartnerCta = !isLoggedIn || user?.role === "user";
   const profilePath = isAdmin ? "/admin" : "/profile";
@@ -116,6 +119,7 @@ export function Header() {
               </form>
             </div>
             )}
+            {isAgent && !isMobile && <AgentNotificationBell />}
             {isLoggedIn && user && !isAdmin && (
               <Link
                 to="/profile?tab=wishlist"
@@ -159,13 +163,16 @@ export function Header() {
             )}
           </div>
 
-          <button
-            className="md:hidden h-10 w-10 flex items-center justify-center rounded-md hover:bg-muted"
-            onClick={() => setMenuOpen((v) => !v)}
-            aria-label={t.menuAriaLabel}
-          >
-            {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-          </button>
+          <div className="md:hidden flex items-center gap-1">
+            {isAgent && isMobile && <AgentNotificationBell />}
+            <button
+              className="h-10 w-10 flex items-center justify-center rounded-md hover:bg-muted"
+              onClick={() => setMenuOpen((v) => !v)}
+              aria-label={t.menuAriaLabel}
+            >
+              {menuOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+            </button>
+          </div>
         </div>
 
         {/* Mobile menu */}

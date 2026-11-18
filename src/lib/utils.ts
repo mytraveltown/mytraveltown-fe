@@ -128,3 +128,22 @@ export function getHomePathForRole(role?: string) {
 export function canRoleReturnTo(role: string | undefined, pathname: string) {
   return isStaffRole(role) || !pathname.startsWith(ADMIN_PANEL_PREFIX);
 }
+
+const RELATIVE_UNITS: ReadonlyArray<[Intl.RelativeTimeFormatUnit, number]> = [
+  ["year", 365 * 24 * 60 * 60],
+  ["month", 30 * 24 * 60 * 60],
+  ["week", 7 * 24 * 60 * 60],
+  ["day", 24 * 60 * 60],
+  ["hour", 60 * 60],
+  ["minute", 60],
+];
+
+/** Short relative time such as "5 min ago" or "2 days ago"; null for anything under a minute. */
+export function formatRelativeTime(iso: string, now: Date = new Date()): string | null {
+  const seconds = Math.round((new Date(iso).getTime() - now.getTime()) / 1000);
+  const formatter = new Intl.RelativeTimeFormat("en-IN", { numeric: "auto", style: "short" });
+  for (const [unit, unitSeconds] of RELATIVE_UNITS) {
+    if (Math.abs(seconds) >= unitSeconds) return formatter.format(Math.round(seconds / unitSeconds), unit);
+  }
+  return null;
+}

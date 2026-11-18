@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Loader2, MessageCircle, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -18,18 +18,25 @@ interface ReviewRepliesProps {
   initialReplies: ReviewReplyInterface[];
   /** Admin or the package's travel partner; everyone else only reads the thread. */
   canReply: boolean;
+  /** Opens the reply box on mount (deep link from the partner's notification bell). */
+  defaultFormOpen?: boolean;
 }
 
 /** Reply thread under a review: admins and the package's agent can reply, authors and admins can delete. */
-export function ReviewReplies({ reviewId, initialReplies, canReply }: ReviewRepliesProps) {
+export function ReviewReplies({ reviewId, initialReplies, canReply, defaultFormOpen = false }: ReviewRepliesProps) {
   const user = useAuth((s) => s.user);
   const [replies, setReplies] = useState(initialReplies);
-  const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isFormOpen, setIsFormOpen] = useState(defaultFormOpen);
   const [comment, setComment] = useState("");
   const [error, setError] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<ReviewReplyInterface | null>(null);
   const [isDeleting, setIsDeleting] = useState(false);
+
+  // Also reopen when a later deep link targets a review that is already on screen.
+  useEffect(() => {
+    if (defaultFormOpen) setIsFormOpen(true);
+  }, [defaultFormOpen]);
 
   const isAdmin = user?.role === "admin";
   const canDelete = (reply: ReviewReplyInterface) =>

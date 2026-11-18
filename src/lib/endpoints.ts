@@ -23,6 +23,8 @@ export const API = {
     UPDATE_MINE: "/agents/me",
     DELETE_MINE: "/agents/me",
     SEND_PACKAGE_REMINDERS: "/agents/reminders/no-packages",
+    NOTIFICATIONS: "/agents/me/notifications",
+    NOTIFICATIONS_READ: "/agents/me/notifications/read",
   },
   USER: {
     GET_MANAGE: "/users/manage",
@@ -50,6 +52,7 @@ export const API = {
   },
   REVIEW: {
     GET_BY_PACKAGE: (packageId: number | string) => `/reviews/package/${packageId}`,
+    GET_BY_ID: (id: number | string) => `/reviews/${id}`,
     CREATE: (packageId: number | string) => `/reviews/package/${packageId}`,
     DELETE: (id: number | string) => `/reviews/${id}`,
     REPLY: (reviewId: number | string) => `/reviews/${reviewId}/replies`,
