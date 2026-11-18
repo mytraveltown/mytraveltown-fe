@@ -14,8 +14,9 @@ export const SITE_NAME = "MyTravelTown";
 export const SITE_URL = (import.meta.env.VITE_SITE_URL as string | undefined) ?? "https://mytraveltown.com";
 const DEFAULT_DESCRIPTION =
   "Discover and book domestic and international travel packages from verified partners on MyTravelTown.";
-/** Main MyTravelTown logo, served from /public so the social preview URL stays stable across builds. */
-export const DEFAULT_OG_IMAGE = "/mytraveltown-logo.png";
+/** 1200x630 brand share card, served from /public so the social preview URL stays stable across builds. */
+export const DEFAULT_OG_IMAGE = "/og-image.jpg";
+const DEFAULT_OG_IMAGE_SIZE = { width: "1200", height: "630", type: "image/jpeg" } as const;
 
 type JsonLd = Record<string, unknown>;
 
@@ -65,6 +66,15 @@ export function SEO({
       <meta property="og:description" content={description} />
       {canonicalUrl && <meta property="og:url" content={canonicalUrl} />}
       <meta property="og:image" content={imageUrl} />
+      <meta property="og:image:secure_url" content={imageUrl} />
+      {/* Size is only known for the default card; package photos vary. */}
+      {imageUrl.endsWith(DEFAULT_OG_IMAGE) && (
+        <>
+          <meta property="og:image:type" content={DEFAULT_OG_IMAGE_SIZE.type} />
+          <meta property="og:image:width" content={DEFAULT_OG_IMAGE_SIZE.width} />
+          <meta property="og:image:height" content={DEFAULT_OG_IMAGE_SIZE.height} />
+        </>
+      )}
       <meta property="og:image:alt" content={SITE_NAME} />
 
       <meta name="twitter:card" content="summary_large_image" />
