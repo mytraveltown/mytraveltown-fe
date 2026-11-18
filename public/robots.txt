@@ -1,0 +1,18 @@
+User-agent: *
+Allow: /
+
+# Private, transactional and account pages
+Disallow: /admin
+Disallow: /profile
+Disallow: /wishlist
+Disallow: /login
+Disallow: /signup
+Disallow: /forgot-password
+Disallow: /agent-registration
+Disallow: /booking/
+Disallow: /package/*/book
+
+# Static pages
+Sitemap: https://mytraveltown.com/sitemap.xml
+# All published packages, generated live from the database
+Sitemap: https://api.mytraveltown.com/api/sitemap/packages.xml

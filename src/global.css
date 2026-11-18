@@ -1,0 +1,255 @@
+@import "tailwindcss" source(none);
+@source "../src";
+@import "tw-animate-css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --radius-3xl: calc(var(--radius) + 12px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-brand: var(--brand);
+  --color-brand-foreground: var(--brand-foreground);
+  --color-soft: var(--soft);
+  --color-cta: var(--cta);
+  --font-display: "Plus Jakarta Sans", "Inter", system-ui, sans-serif;
+  --font-sans: "Inter", system-ui, sans-serif;
+}
+
+/*
+ * Disable Tailwind's default font-size and font-weight scales so text-sm,
+ * font-bold etc. generate nothing. All sizing and weight must go through the
+ * semantic utilities at the bottom of this file, which read the tokens below.
+ */
+@theme {
+  --text-*: initial;
+  --font-weight-*: initial;
+  --tracking-code: 0.35em;
+}
+
+/* Typography tokens: the single source of truth for font size and weight. */
+:root {
+  --fs-h1: clamp(1.875rem, 1.4rem + 2vw, 3rem);
+  --fs-h2: clamp(1.5rem, 1.25rem + 1vw, 2.25rem);
+  --fs-h3: clamp(1.25rem, 1.15rem + 0.5vw, 1.5rem);
+  --fs-h4: 1.125rem;
+  --fs-h5: 1rem;
+  --fs-h6: 0.875rem;
+  --fs-display: clamp(2.25rem, 1.5rem + 3.5vw, 4.5rem);
+  --fs-body-lg: 1.125rem;
+  --fs-body: 1rem;
+  --fs-body-sm: 0.875rem;
+  --fs-caption: 0.75rem;
+
+  --fw-regular: 400;
+  --fw-medium: 500;
+  --fw-semibold: 600;
+  --fw-bold: 700;
+  --fw-extrabold: 800;
+
+  --lh-heading: 1.2;
+  --lh-body: 1.6;
+
+  /* Heading icons are sized in em so they scale with the heading's font size. */
+  --icon-heading: 1em;
+}
+
+:root {
+  --radius: 0.75rem;
+  --background: oklch(1 0 0);
+  --foreground: oklch(0.18 0.03 250);
+  --card: oklch(1 0 0);
+  --card-foreground: oklch(0.18 0.03 250);
+  --popover: oklch(1 0 0);
+  --popover-foreground: oklch(0.18 0.03 250);
+  --primary: oklch(0.55 0.21 255);
+  --primary-foreground: oklch(0.99 0 0);
+  --secondary: oklch(0.96 0.01 250);
+  --secondary-foreground: oklch(0.2 0.03 250);
+  --muted: oklch(0.96 0.01 250);
+  --muted-foreground: oklch(0.5 0.02 250);
+  --accent: oklch(0.94 0.04 240);
+  --accent-foreground: oklch(0.2 0.03 250);
+  --destructive: oklch(0.6 0.23 27);
+  --destructive-foreground: oklch(0.99 0 0);
+  --border: oklch(0.92 0.01 250);
+  --input: oklch(0.92 0.01 250);
+  --ring: oklch(0.55 0.21 255);
+  --brand: oklch(0.45 0.22 258);
+  --brand-foreground: oklch(0.99 0 0);
+  --soft: oklch(0.95 0.03 240);
+  --cta: oklch(0.62 0.24 25);
+  --shadow-soft: 0 10px 40px -10px oklch(0.45 0.22 258 / 0.18);
+  --shadow-card: 0 8px 24px -12px oklch(0.2 0.05 250 / 0.18);
+}
+
+@layer base {
+  * { border-color: var(--color-border); }
+  html { scroll-behavior: smooth; }
+  body {
+    background-color: var(--color-background);
+    color: var(--color-foreground);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+  }
+  h1, h2, h3, h4, h5, h6 {
+    font-family: var(--font-display);
+    letter-spacing: -0.02em;
+    line-height: var(--lh-heading);
+  }
+  h1 { font-size: var(--fs-h1); font-weight: var(--fw-bold); }
+  h2 { font-size: var(--fs-h2); font-weight: var(--fw-bold); }
+  h3 { font-size: var(--fs-h3); font-weight: var(--fw-semibold); }
+  h4 { font-size: var(--fs-h4); font-weight: var(--fw-semibold); }
+  h5 { font-size: var(--fs-h5); font-weight: var(--fw-semibold); }
+  h6 { font-size: var(--fs-h6); font-weight: var(--fw-semibold); }
+  p { font-size: var(--fs-body); font-weight: var(--fw-regular); line-height: var(--lh-body); }
+  button:not(:disabled),
+  [role="button"]:not([aria-disabled="true"]),
+  a[href],
+  label[for] {
+    cursor: pointer;
+  }
+  button:disabled,
+  [aria-disabled="true"] {
+    cursor: not-allowed;
+  }
+}
+
+@keyframes float-slow {
+  0%, 100% { transform: translateY(0px) translateX(0px); }
+  50% { transform: translateY(-20px) translateX(10px); }
+}
+@keyframes shimmer {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+@keyframes rise {
+  from { opacity: 0; transform: translateY(24px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes ping-slow {
+  0% { transform: scale(1); opacity: 0.6; }
+  100% { transform: scale(2.2); opacity: 0; }
+}
+.animate-float-slow { animation: float-slow 8s ease-in-out infinite; }
+.animate-rise { animation: rise 0.7s ease-out both; }
+.text-shimmer {
+  background: linear-gradient(90deg, oklch(0.95 0.05 80), oklch(0.85 0.18 30), oklch(0.95 0.05 80));
+  background-size: 200% auto;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: shimmer 4s linear infinite;
+}
+.glass {
+  background: color-mix(in oklab, white 70%, transparent);
+  backdrop-filter: blur(14px) saturate(140%);
+}
+.glass-dark {
+  background: color-mix(in oklab, black 35%, transparent);
+  backdrop-filter: blur(14px) saturate(140%);
+  border: 1px solid color-mix(in oklab, white 18%, transparent);
+}
+/* "Become a Partner" call to action: gradient pill with a sweeping sheen */
+@keyframes partner-sheen {
+  0%, 60% { transform: translateX(-120%) skewX(-20deg); }
+  100% { transform: translateX(220%) skewX(-20deg); }
+}
+.partner-cta {
+  position: relative;
+  isolation: isolate;
+  overflow: hidden;
+  background: linear-gradient(110deg, var(--brand), var(--primary));
+  color: var(--brand-foreground);
+  border-color: color-mix(in oklab, white 25%, transparent);
+  box-shadow: 0 6px 18px -6px color-mix(in oklab, var(--brand) 45%, transparent);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.partner-cta::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  width: 40%;
+  z-index: -1;
+  background: linear-gradient(90deg, transparent, color-mix(in oklab, white 45%, transparent), transparent);
+  animation: partner-sheen 3.2s ease-in-out infinite;
+}
+.partner-cta:hover {
+  transform: translateY(-1px);
+  border-color: color-mix(in oklab, white 35%, transparent);
+  box-shadow: 0 10px 24px -8px color-mix(in oklab, var(--brand) 60%, transparent);
+}
+.partner-cta:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .partner-cta::after { animation: none; display: none; }
+  .partner-cta, .partner-cta:hover { transform: none; }
+}
+/* Booking invoice print layout: a single A4 page without the browser's date/URL margins. */
+@page invoice {
+  size: A4;
+  margin: 0;
+}
+@media print {
+  /* Apply the named page to the whole document: switching page names mid-document forces a page break. */
+  body:has(.invoice-page) {
+    page: invoice;
+  }
+  .invoice-page {
+    padding: 12mm 14mm;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+  .invoice-page article {
+    break-inside: avoid;
+  }
+}
+.scrollbar-hide {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+
+/* Semantic typography utilities: the only way to set font size and weight. */
+@utility text-display { font-size: var(--fs-display); font-weight: var(--fw-extrabold); line-height: 1.1; }
+@utility text-body-lg { font-size: var(--fs-body-lg); line-height: var(--lh-body); }
+@utility text-body { font-size: var(--fs-body); line-height: var(--lh-body); }
+@utility text-body-sm { font-size: var(--fs-body-sm); line-height: 1.5; }
+@utility text-caption { font-size: var(--fs-caption); line-height: 1.4; }
+@utility fw-regular { font-weight: var(--fw-regular); }
+@utility fw-medium { font-weight: var(--fw-medium); }
+@utility fw-semibold { font-weight: var(--fw-semibold); }
+@utility fw-bold { font-weight: var(--fw-bold); }
+@utility fw-extrabold { font-weight: var(--fw-extrabold); }
+@utility icon-heading { width: var(--icon-heading); height: var(--icon-heading); flex-shrink: 0; }
+@utility text-price-lg { font-size: var(--fs-h2); line-height: var(--lh-heading); }
+@utility text-title { font-size: var(--fs-h3); line-height: var(--lh-heading); }
+@utility text-headline { font-size: var(--fs-h2); line-height: var(--lh-heading); }
