@@ -1,64 +1,70 @@
-name: Deploy React Vite App to VPS (Apache)
+name: Deploy Frontend to Hostinger
 
 on:
   push:
     branches:
-      - server
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: frontend-production
+  cancel-in-progress: false
 
 jobs:
-  build-and-deploy:
+  deploy:
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
       - name: Setup Node.js
-        uses: actions/setup-node@v3
+        uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: "22"
+          cache: npm
 
       - name: Install dependencies
         run: npm ci
 
-      - name: Build app
+      - name: Build frontend
         run: npm run build
 
-      # ✅ 1. UPLOAD TO A TEMP FOLDER (User has write access here)
-      - name: Upload dist to VPS Temp
-        uses: appleboy/scp-action@v0.1.4
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.VPS_KEY }}
-          port: 22
-          source: "dist/"
-          # Upload to the user's home directory first to avoid permission errors
-          target: "/home/${{ secrets.VPS_USER }}/temp_deploy"
+      - name: Verify build output
+        run: |
+          test -f dist/index.html
+          find dist -maxdepth 2 -type f | head -50
 
-      # ✅ 2. MOVE TO FINAL DESTINATION (Using sudo)
-      - name: Deploy and Reload
-        uses: appleboy/ssh-action@v0.1.8
-        with:
-          host: ${{ secrets.VPS_HOST }}
-          username: ${{ secrets.VPS_USER }}
-          key: ${{ secrets.VPS_KEY }}
-          script: |
-            sudo mkdir -p /var/www/html
-            
-            # 2. Clear old files (Optional but recommended to prevent junk buildup)
-            sudo rm -rf /var/www/html/*
-            
-            # 3. Move files from temp to final (Handle the dist nesting)
-            # scp usually uploads as /temp_deploy/dist, so we move the contents of that
-            sudo cp -r /home/${{ secrets.VPS_USER }}/temp_deploy/dist/* /var/www/html/
-            
-            # 4. Set Permissions
-            sudo chown -R www-data:www-data /var/www/html
-            sudo chmod -R 755 /var/www/html
-            
-            # 5. Cleanup Temp
-            rm -rf /home/${{ secrets.VPS_USER }}/temp_deploy
-            
-            # 6. No need to restart Apache for static React files, but if you must:
-            # sudo systemctl reload apache2
+      - name: Configure SSH
+        env:
+          SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          SSH_HOSTS: ${{ secrets.VPS_KNOWN_HOSTS }}
+        run: |
+          set -eu
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$SSH_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          printf '%s\n' "$SSH_HOSTS" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+
+      - name: Test SSH connection
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+        run: |
+          ssh "$VPS_USER@$VPS_HOST" \
+            'echo "SSH connection successful"'
+
+      - name: Deploy dist to Apache
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+        run: |
+          rsync -az --delete --dry-run dist/ \
+            "$VPS_USER@$VPS_HOST:/var/www/html/"
+
+          rsync -az --delete dist/ \
+            "$VPS_USER@$VPS_HOST:/var/www/html/"
