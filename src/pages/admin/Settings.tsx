@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, useCallback } from "react";
 import { CheckCircle2, ShieldCheck, Upload, User, X, Loader2 } from "lucide-react";
 import { GET, PUT } from "@/lib/request";
 import { API } from "@/lib/endpoints";
+import { uploadOptionalFile } from "@/lib/upload";
 import { useAuth } from "@/hooks/useAuth";
 import { profileUrl, parseHasCompany } from "@/lib/utils";
 import type { AgentInterface, BankInterface, UserInterface } from "@/lib/interface";
@@ -388,7 +389,8 @@ function ProfileForm() {
       formData.append("name", fullName);
       formData.append("email", email);
       formData.append("phone", phone);
-      if (profileFile) formData.append("profile", profileFile);
+      const profilePath = await uploadOptionalFile(profileFile, "profile");
+      if (profilePath) formData.append("profile", profilePath);
 
       const updated = await PUT<UserInterface>(API.AUTH.UPDATE_PROFILE, formData);
       updateUser(updated);
@@ -401,8 +403,9 @@ function ProfileForm() {
         if (companyDocumentType.trim()) {
           agentFormData.append("company_document_type", companyDocumentType.trim());
         }
-        if (companyDocumentFile) {
-          agentFormData.append("company_document", companyDocumentFile);
+        const companyDocumentPath = await uploadOptionalFile(companyDocumentFile, "agent-document");
+        if (companyDocumentPath) {
+          agentFormData.append("company_document", companyDocumentPath);
         }
       } else {
         agentFormData.append("company_name", "");
@@ -411,13 +414,16 @@ function ProfileForm() {
       agentFormData.append("location", location.trim());
       agentFormData.append("experience", String(experienceYears));
       agentFormData.append("deals_in", JSON.stringify(dealsIn));
-      if (uploadDocType === "aadhaar") {
-        if (aadharFrontFile) agentFormData.append("aadhar", aadharFrontFile);
-        if (aadharBackFile) agentFormData.append("aadhar_back", aadharBackFile);
-      }
-      if (uploadDocType === "dl") {
-        if (dlFrontFile) agentFormData.append("dl", dlFrontFile);
-        if (dlBackFile) agentFormData.append("dl_back", dlBackFile);
+      // ID documents go straight to S3; the form carries their paths.
+      const idDocumentFiles: Record<string, File | null> =
+        uploadDocType === "aadhaar"
+          ? { aadhar: aadharFrontFile, aadhar_back: aadharBackFile }
+          : uploadDocType === "dl"
+            ? { dl: dlFrontFile, dl_back: dlBackFile }
+            : {};
+      for (const [field, file] of Object.entries(idDocumentFiles)) {
+        const documentPath = await uploadOptionalFile(file, "agent-document");
+        if (documentPath) agentFormData.append(field, documentPath);
       }
       if (
         (uploadDocType === "aadhaar" && aadharComplete) ||
@@ -991,8 +997,9 @@ function BankDetailsForm() {
       if (bankDocumentType) {
         formData.append("bank_document_type", bankDocumentType);
       }
-      if (bankDocumentFile) {
-        formData.append("bank_document", bankDocumentFile);
+      const bankDocumentPath = await uploadOptionalFile(bankDocumentFile, "bank-document");
+      if (bankDocumentPath) {
+        formData.append("bank_document", bankDocumentPath);
       }
 
       const res = await PUT<{ data?: BankInterface }>(API.BANK.UPDATE_BANK_DETAILS, formData);

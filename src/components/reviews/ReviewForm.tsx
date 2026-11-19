@@ -5,6 +5,7 @@ import { StarRating } from "@/components/reviews/StarRating";
 import { cn } from "@/lib/utils";
 import { POST } from "@/lib/request";
 import { API } from "@/lib/endpoints";
+import { uploadFiles } from "@/lib/upload";
 import type { ReviewInterface } from "@/lib/interface";
 import { packageText } from "@/lib/text";
 import {
@@ -68,17 +69,15 @@ export function ReviewForm({ packageId, onSubmitted, initialRating = 0, embedded
     const mediaError = validateReviewMedia(files);
     if (mediaError) return setError(mediaError);
 
-    const formData = new FormData();
-    formData.append("rating", String(rating));
-    formData.append("comment", trimmed);
-    files.forEach((file) => formData.append("media", file));
-
     setError("");
     setIsSubmitting(true);
     try {
-      // Video uploads can exceed the default 15s client timeout.
-      const res = await POST<{ review: ReviewInterface }>(API.REVIEW.CREATE(packageId), formData, {
-        timeout: 120000,
+      // Files go straight to S3; the review only carries their paths.
+      const mediaPaths = await uploadFiles(files, "review-media");
+      const res = await POST<{ review: ReviewInterface }>(API.REVIEW.CREATE(packageId), {
+        rating,
+        comment: trimmed,
+        media: mediaPaths,
       });
       toast.success(text.success);
       onSubmitted(res.review);

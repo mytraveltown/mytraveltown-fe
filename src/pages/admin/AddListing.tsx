@@ -1,8 +1,9 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { AlertCircle, Loader2, Plus, Trash2, Upload, X } from "lucide-react";
+import { AlertCircle, Loader2, Plus, Trash2, Upload } from "lucide-react";
 import { GET, POST, PUT, DELETE } from "@/lib/request";
 import { API } from "@/lib/endpoints";
+import { uploadFile } from "@/lib/upload";
 import { cn, formatINR, profileUrl } from "@/lib/utils";
 import { INTERNATIONAL_MIN_PRICE } from "@/lib/pricing";
 import { AI_REQUEST_TIMEOUT_MS } from "@/lib/ai";
@@ -11,6 +12,8 @@ import { AiRefineButton } from "@/components/AiRefineButton";
 import { LOCATION_DESCRIPTION_MAX_WORDS, TEXT_INPUT_MAX_WORDS, countWords } from "@/lib/wordLimit";
 import type { AgentInterface, PackageInterface, PackageMediaInterface } from "@/lib/interface";
 import { NativeSelect } from "@/components/NativeSelect";
+import { MediaTile, type MediaKind } from "@/components/media/MediaTile";
+import { MediaPreviewDialog, type MediaPreviewItem } from "@/components/media/MediaPreviewDialog";
 
 type PackageType = "domestic" | "international";
 type FlightOption = "included" | "excluded";
@@ -22,6 +25,18 @@ interface DayItinerary {
   activityCount: number;
   hotelStars: string;
   meals: string;
+}
+
+/** A gallery file picked in this session; `path` is set once it is on S3. */
+interface GalleryUpload {
+  id: string;
+  file: File;
+  kind: MediaKind;
+  /** Local object URL for the thumbnail, so it shows before the upload finishes. */
+  previewUrl: string;
+  status: "uploading" | "done" | "error";
+  path?: string;
+  error?: string;
 }
 
 const emptyDay = (): DayItinerary => ({
@@ -64,7 +79,17 @@ export default function AddListing() {
   const [deletingMediaId, setDeletingMediaId] = useState<number | null>(null);
   const [packageType, setPackageType] = useState<PackageType>("domestic");
   const [visaRequired, setVisaRequired] = useState(false);
-  const [galleryFiles, setGalleryFiles] = useState<File[]>([]);
+  // Files upload to S3 as soon as they are picked; the form only sends their paths.
+  const [galleryUploads, setGalleryUploads] = useState<GalleryUpload[]>([]);
+  const [previewItem, setPreviewItem] = useState<MediaPreviewItem | null>(null);
+
+  // Free the thumbnails' object URLs when the page closes.
+  const galleryUploadsRef = useRef(galleryUploads);
+  galleryUploadsRef.current = galleryUploads;
+  useEffect(
+    () => () => galleryUploadsRef.current.forEach((item) => URL.revokeObjectURL(item.previewUrl)),
+    []
+  );
   const [packageName, setPackageName] = useState("");
   const [fromLocation, setFromLocation] = useState("");
   const [toLocation, setToLocation] = useState("");
@@ -188,14 +213,48 @@ export default function AddListing() {
     );
   };
 
-  const handleGalleryChange = (files: FileList | null) => {
-    if (!files) return;
-    setGalleryFiles((prev) => [...prev, ...Array.from(files)]);
+  const updateGalleryUpload = (id: string, changes: Partial<GalleryUpload>) => {
+    setGalleryUploads((prev) => prev.map((item) => (item.id === id ? { ...item, ...changes } : item)));
   };
 
-  const removeGalleryFile = (index: number) => {
-    setGalleryFiles((prev) => prev.filter((_, i) => i !== index));
+  const startGalleryUpload = async (item: GalleryUpload) => {
+    updateGalleryUpload(item.id, { status: "uploading", error: undefined });
+    try {
+      const path = await uploadFile(item.file, "package-media");
+      updateGalleryUpload(item.id, { status: "done", path });
+    } catch (err: unknown) {
+      const message =
+        err && typeof err === "object" && "message" in err
+          ? String((err as { message: string }).message)
+          : "Upload failed";
+      updateGalleryUpload(item.id, { status: "error", error: message });
+    }
   };
+
+  const handleGalleryChange = (files: FileList | null) => {
+    if (!files?.length) return;
+    const items: GalleryUpload[] = Array.from(files).map((file) => ({
+      id: crypto.randomUUID(),
+      file,
+      kind: file.type.startsWith("video/") ? "video" : "image",
+      previewUrl: URL.createObjectURL(file),
+      status: "uploading",
+    }));
+    setGalleryUploads((prev) => [...prev, ...items]);
+    items.forEach((item) => void startGalleryUpload(item));
+  };
+
+  // A removed file is never attached to the package; S3 expires it automatically.
+  const removeGalleryUpload = (id: string) => {
+    setGalleryUploads((prev) => {
+      const removed = prev.find((item) => item.id === id);
+      if (removed) URL.revokeObjectURL(removed.previewUrl);
+      return prev.filter((item) => item.id !== id);
+    });
+  };
+
+  const isGalleryUploading = galleryUploads.some((item) => item.status === "uploading");
+  const hasGalleryErrors = galleryUploads.some((item) => item.status === "error");
 
   const buildFormData = (status: "draft" | "published") => {
     const formData = new FormData();
@@ -225,9 +284,9 @@ export default function AddListing() {
     }));
     formData.append("itinerary", JSON.stringify(itinerary));
 
-    galleryFiles.forEach((file) => {
-      formData.append("gallery", file);
-    });
+    // Gallery files are already on S3; send their paths.
+    const galleryPaths = galleryUploads.flatMap((item) => (item.path ? [item.path] : []));
+    formData.append("gallery", JSON.stringify(galleryPaths));
 
     return formData;
   };
@@ -282,6 +341,15 @@ export default function AddListing() {
       return;
     }
 
+    if (isGalleryUploading) {
+      setError("Please wait for the gallery uploads to finish.");
+      return;
+    }
+    if (hasGalleryErrors) {
+      setError("Some gallery files failed to upload. Retry or remove them before saving.");
+      return;
+    }
+
     setIsSubmitting(true);
     try {
       const formData = buildFormData(status);
@@ -318,7 +386,7 @@ export default function AddListing() {
   }
 
   return (
-    <div className="space-y-6 max-w-4xl">
+    <div className="space-y-6 w-full">
       <div>
         <h2 className="fw-bold">
           {isEdit ? "Edit Package / Itinerary" : "Create Package / Itinerary"}
@@ -399,67 +467,54 @@ export default function AddListing() {
               className="hidden"
               accept="image/*,video/*"
               multiple
-              onChange={(e) => handleGalleryChange(e.target.files)}
+              onChange={(e) => {
+                handleGalleryChange(e.target.files);
+                // Lets the same file be picked again after it was removed.
+                e.target.value = "";
+              }}
             />
           </label>
-          {galleryFiles.length > 0 && (
-            <ul className="mt-4 space-y-2">
-              {galleryFiles.map((file, index) => (
-                <li
-                  key={`${file.name}-${index}`}
-                  className="flex items-center justify-between gap-3 bg-neutral-50 border border-neutral-200 rounded-lg px-3 py-2 text-body-sm"
-                >
-                  <span className="truncate text-neutral-700">{file.name}</span>
-                  <button
-                    type="button"
-                    onClick={() => removeGalleryFile(index)}
-                    className="text-neutral-400 hover:text-red-500 shrink-0"
-                    aria-label="Remove file"
-                  >
-                    <X size={16} />
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-          {existingMedia.length > 0 && (
+          {(existingMedia.length > 0 || galleryUploads.length > 0) && (
             <div className="mt-4">
-              <p className="text-body-sm fw-medium text-neutral-700 mb-2">Uploaded media</p>
-              <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-                {existingMedia.map((item) => (
-                  <div
+              <p className="text-body-sm fw-medium text-neutral-700 mb-2">
+                Gallery ({existingMedia.length + galleryUploads.length})
+              </p>
+              <div className="grid grid-cols-[repeat(auto-fill,minmax(96px,1fr))] gap-2 max-w-full">
+                {existingMedia.map((item, index) => {
+                  const src = profileUrl(item.file_path);
+                  const kind: MediaKind = item.media_type === "video" ? "video" : "image";
+                  const title = `Package media ${index + 1}`;
+                  return (
+                    <MediaTile
+                      key={`saved-${item.id}`}
+                      src={src}
+                      kind={kind}
+                      alt={title}
+                      deleting={deletingMediaId === item.id}
+                      onPreview={() => setPreviewItem({ src, kind, title })}
+                      onDelete={() => handleDeleteMedia(item.id)}
+                    />
+                  );
+                })}
+                {galleryUploads.map((item) => (
+                  <MediaTile
                     key={item.id}
-                    className="relative rounded-lg overflow-hidden border border-neutral-200 bg-neutral-50"
-                  >
-                    {item.media_type === "image" ? (
-                      <img
-                        src={profileUrl(item.file_path)}
-                        alt="Package media"
-                        className="w-full h-24 object-cover"
-                      />
-                    ) : (
-                      <div className="w-full h-24 flex items-center justify-center text-caption text-neutral-500">
-                        Video
-                      </div>
-                    )}
-                    <button
-                      type="button"
-                      onClick={() => handleDeleteMedia(item.id)}
-                      disabled={deletingMediaId === item.id}
-                      className="absolute top-1 right-1 size-7 rounded-full bg-black/50 text-white flex items-center justify-center hover:bg-red-600 disabled:opacity-50"
-                      aria-label="Remove media"
-                    >
-                      {deletingMediaId === item.id ? (
-                        <Loader2 size={14} className="animate-spin" />
-                      ) : (
-                        <X size={14} />
-                      )}
-                    </button>
-                  </div>
+                    src={item.previewUrl}
+                    kind={item.kind}
+                    alt={item.file.name}
+                    status={item.status}
+                    error={item.error}
+                    onPreview={() =>
+                      setPreviewItem({ src: item.previewUrl, kind: item.kind, title: item.file.name })
+                    }
+                    onDelete={() => removeGalleryUpload(item.id)}
+                    onRetry={() => void startGalleryUpload(item)}
+                  />
                 ))}
               </div>
             </div>
           )}
+          <MediaPreviewDialog item={previewItem} onClose={() => setPreviewItem(null)} />
         </Section>
 
         {/* Basic details */}
@@ -728,7 +783,7 @@ export default function AddListing() {
         <div className="flex flex-col sm:flex-row gap-3 pt-2">
           <button
             type="submit"
-            disabled={isSubmitting || publishBlocked}
+            disabled={isSubmitting || publishBlocked || isGalleryUploading}
             title={
               publishBlocked
                 ? "Publishing is disabled until your agent profile is verified"
@@ -749,7 +804,7 @@ export default function AddListing() {
           </button>
           <button
             type="button"
-            disabled={isSubmitting}
+            disabled={isSubmitting || isGalleryUploading}
             onClick={() => handleSubmit("draft")}
             className="inline-flex items-center justify-center gap-2 border border-neutral-200 hover:bg-neutral-50 disabled:opacity-50 disabled:cursor-not-allowed text-neutral-700 fw-semibold px-6 py-2.5 rounded-lg text-body-sm cursor-pointer"
           >

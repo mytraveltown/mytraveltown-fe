@@ -8,6 +8,13 @@ export const commonText = {
   brandName: "MyTravelTown",
 } as const;
 
+/** Copy for direct-to-S3 file uploads (lib/upload.ts). */
+export const uploadText = {
+  failed: (fileName: string) => `Could not upload "${fileName}". Please try again.`,
+  network: (fileName: string) =>
+    `Could not upload "${fileName}". Check your connection and try again.`,
+} as const;
+
 /** Copy for the search page and the location autocomplete. */
 export const searchText = {
   seo: {

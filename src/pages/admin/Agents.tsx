@@ -14,7 +14,7 @@ import {
 import { toast } from "sonner";
 import { GET, POST, PUT, DELETE } from "@/lib/request";
 import { API } from "@/lib/endpoints";
-import { profileUrl, agentHasCompany } from "@/lib/utils";
+import { profileUrl, agentHasCompany, fileExtension } from "@/lib/utils";
 import { BANK_DOCUMENT_TYPES, COMPANY_DOCUMENT_TYPES, documentTypeLabel } from "@/lib/documentTypes";
 import type {
   AgentInterface,
@@ -602,7 +602,7 @@ function DocumentCard({ label, path }: { label: string; path?: string | null }) 
   }
 
   const url = profileUrl(path);
-  const isPdf = path.toLowerCase().endsWith(".pdf");
+  const isPdf = fileExtension(path) === "pdf";
 
   return (
     <div className="rounded-xl border border-neutral-200 overflow-hidden">

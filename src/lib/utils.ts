@@ -80,12 +80,23 @@ export function formatINR(amount: string | number) {
   return `₹${Number(amount).toLocaleString("en-IN")}`;
 }
 
+/**
+ * Browser URL for a stored media value. The API returns S3 files as full presigned URLs, used
+ * as-is; older relative paths ("/uploads/...", "/media/...") are served by the API host.
+ */
 export function profileUrl(url: string) {
   if (!url || url.trim() === "") {
     return import.meta.env.VITE_MEDIA_URL + "/uploads/profile/default-avatar.png";
-  } else {
-    return import.meta.env.VITE_MEDIA_URL + url;
   }
+  if (/^(https?:|blob:|data:)/i.test(url)) return url;
+  return import.meta.env.VITE_MEDIA_URL + url;
+}
+
+/** File extension of a path or URL, ignoring any query string (presigned S3 URLs carry one). */
+export function fileExtension(url: string) {
+  const pathname = url.split(/[?#]/)[0];
+  const dot = pathname.lastIndexOf(".");
+  return dot === -1 ? "" : pathname.slice(dot + 1).toLowerCase();
 }
 
 /** MySQL may return has_company as 0/1 — never use `{value && ...}` directly in JSX. */

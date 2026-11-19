@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { Loader2, Upload, User } from "lucide-react";
 import { GET, PUT } from "@/lib/request";
 import { API } from "@/lib/endpoints";
+import { uploadOptionalFile } from "@/lib/upload";
 import { useAuth } from "@/hooks/useAuth";
 import { profileUrl } from "@/lib/utils";
 import type { UserInterface } from "@/lib/interface";
@@ -87,7 +88,8 @@ export function AccountSettingsForm() {
       formData.append("name", fullName.trim());
       formData.append("email", email.trim());
       formData.append("phone", phone);
-      if (profileFile) formData.append("profile", profileFile);
+      const profilePath = await uploadOptionalFile(profileFile, "profile");
+      if (profilePath) formData.append("profile", profilePath);
 
       const updated = await PUT<UserInterface>(API.AUTH.UPDATE_PROFILE, formData);
       updateUser(updated);

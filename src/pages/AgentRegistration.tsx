@@ -4,6 +4,7 @@ import { CheckCircle2, ShieldCheck, Upload, User, X, ArrowLeft, Loader2, Sparkle
 import { useAuth } from "@/hooks/useAuth";
 import { GET, POST, PUT } from "@/lib/request";
 import { API } from "@/lib/endpoints";
+import { uploadOptionalFile } from "@/lib/upload";
 import { profileUrl, parseHasCompany } from "@/lib/utils";
 import type { AgentInterface, UserInterface } from "@/lib/interface";
 import { DocumentTypeUploadField } from "@/components/DocumentTypeUploadField";
@@ -282,7 +283,8 @@ export default function AgentRegistrationPage() {
       formData.append("name", fullName);
       formData.append("email", email);
       formData.append("phone", phone);
-      if (profileFile) formData.append("profile", profileFile);
+      const profilePath = await uploadOptionalFile(profileFile, "profile");
+      if (profilePath) formData.append("profile", profilePath);
 
       await PUT<UserInterface>(API.AUTH.UPDATE_PROFILE, formData);
 
@@ -293,8 +295,9 @@ export default function AgentRegistrationPage() {
         if (companyDocumentType.trim()) {
           agentFormData.append("company_document_type", companyDocumentType.trim());
         }
-        if (companyDocumentFile) {
-          agentFormData.append("company_document", companyDocumentFile);
+        const companyDocumentPath = await uploadOptionalFile(companyDocumentFile, "agent-document");
+        if (companyDocumentPath) {
+          agentFormData.append("company_document", companyDocumentPath);
         }
       } else {
         agentFormData.append("company_name", "");
@@ -304,13 +307,16 @@ export default function AgentRegistrationPage() {
       agentFormData.append("experience", String(experienceYears));
       agentFormData.append("deals_in", JSON.stringify(dealsIn));
       agentFormData.append("verification_method", verificationMethod!);
-      if (uploadDocType === "aadhaar") {
-        if (aadharFrontFile) agentFormData.append("aadhar", aadharFrontFile);
-        if (aadharBackFile) agentFormData.append("aadhar_back", aadharBackFile);
-      }
-      if (uploadDocType === "dl") {
-        if (dlFrontFile) agentFormData.append("dl", dlFrontFile);
-        if (dlBackFile) agentFormData.append("dl_back", dlBackFile);
+      // ID documents go straight to S3; the form carries their paths.
+      const idDocumentFiles: Record<string, File | null> =
+        uploadDocType === "aadhaar"
+          ? { aadhar: aadharFrontFile, aadhar_back: aadharBackFile }
+          : uploadDocType === "dl"
+            ? { dl: dlFrontFile, dl_back: dlBackFile }
+            : {};
+      for (const [field, file] of Object.entries(idDocumentFiles)) {
+        const documentPath = await uploadOptionalFile(file, "agent-document");
+        if (documentPath) agentFormData.append(field, documentPath);
       }
 
       // The backend polishes About Me with AI while saving, so allow extra time.

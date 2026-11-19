@@ -4,6 +4,7 @@ import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { User, Mail, Phone, Calendar, Lock, Eye, EyeOff, MessageCircle, LayoutDashboard, Camera, Check, AlertCircle, LogOut, CalendarDays, Loader2, Users, FileText, KeyRound, Heart } from "lucide-react";
 import { GET, PUT, POST } from "../lib/request";
 import { API } from "../lib/endpoints";
+import { uploadOptionalFile } from "@/lib/upload";
 import { useAuth } from "../hooks/useAuth";
 import { WishlistPackages } from "@/components/WishlistPackages";
 import { BookingBalancePanel, hasPendingBalance } from "@/components/BookingBalancePanel";
@@ -398,7 +399,8 @@ export default function ProfilePage() {
       formData.append("phone", mobile);
       if (age) formData.append("age", age);
       if (gender) formData.append("gender", gender);
-      if (profileFile) formData.append("profile", profileFile);
+      const profilePath = await uploadOptionalFile(profileFile, "profile");
+      if (profilePath) formData.append("profile", profilePath);
 
       const updated = await PUT<UserInterface>(API.AUTH.UPDATE_PROFILE, formData);
       applyProfile(updated);

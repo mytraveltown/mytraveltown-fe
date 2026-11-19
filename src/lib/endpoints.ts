@@ -94,6 +94,9 @@ export const API = {
   AI: {
     REFINE_TEXT: "/ai/refine-text",
   },
+  UPLOAD: {
+    PRESIGN: "/uploads/presign",
+  },
   DIGILOCKER: {
     INITIATE: "/digilocker/initiate",
     COMPLETE: "/digilocker/complete",
