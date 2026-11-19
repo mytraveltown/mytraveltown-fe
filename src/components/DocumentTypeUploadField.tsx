@@ -6,6 +6,7 @@ import {
   type DocumentTypeOption,
 } from "@/lib/documentTypes";
 import { profileUrl } from "@/lib/utils";
+import { NativeSelect } from "@/components/NativeSelect";
 
 const ACCEPTED_FILES = "image/*,.pdf";
 
@@ -73,7 +74,7 @@ export function DocumentTypeUploadField({
         >
           {typeLabel}
         </label>
-        <select
+        <NativeSelect
           id={selectId}
           value={selectValue}
           onChange={(e) => handleSelect(e.target.value)}
@@ -85,7 +86,7 @@ export function DocumentTypeUploadField({
               {type.label}
             </option>
           ))}
-        </select>
+        </NativeSelect>
       </div>
 
       {isOther && (

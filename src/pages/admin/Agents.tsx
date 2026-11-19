@@ -32,6 +32,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { NativeSelect } from "@/components/NativeSelect";
 
 const STATUS_OPTIONS = [
   { value: "", label: "All statuses" },
@@ -209,7 +210,7 @@ export default function AdminAgents() {
             className="w-full pl-9 pr-3 py-2.5 rounded-lg border border-neutral-200 text-body-sm focus:outline-none focus:border-blue-500"
           />
         </div>
-        <select
+        <NativeSelect
           value={statusFilter}
           onChange={(e) => {
             setStatusFilter(e.target.value);
@@ -222,7 +223,7 @@ export default function AdminAgents() {
               {o.label}
             </option>
           ))}
-        </select>
+        </NativeSelect>
         <button
           type="button"
           onClick={applySearch}

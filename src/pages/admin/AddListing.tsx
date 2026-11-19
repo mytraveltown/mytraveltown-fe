@@ -3,11 +3,14 @@ import { useNavigate, useParams } from "react-router-dom";
 import { AlertCircle, Loader2, Plus, Trash2, Upload, X } from "lucide-react";
 import { GET, POST, PUT, DELETE } from "@/lib/request";
 import { API } from "@/lib/endpoints";
-import { profileUrl } from "@/lib/utils";
+import { cn, formatINR, profileUrl } from "@/lib/utils";
+import { INTERNATIONAL_MIN_PRICE } from "@/lib/pricing";
+import { AI_REQUEST_TIMEOUT_MS } from "@/lib/ai";
 import { WordLimitedTextarea } from "@/components/WordLimitedTextarea";
 import { AiRefineButton } from "@/components/AiRefineButton";
 import { LOCATION_DESCRIPTION_MAX_WORDS, TEXT_INPUT_MAX_WORDS, countWords } from "@/lib/wordLimit";
 import type { AgentInterface, PackageInterface, PackageMediaInterface } from "@/lib/interface";
+import { NativeSelect } from "@/components/NativeSelect";
 
 type PackageType = "domestic" | "international";
 type FlightOption = "included" | "excluded";
@@ -246,6 +249,11 @@ export default function AddListing() {
     }
   };
 
+  const isInternational = packageType === "international";
+  const priceValue = price.trim() === "" ? null : Number(price);
+  const isBelowInternationalMin =
+    isInternational && priceValue !== null && priceValue < INTERNATIONAL_MIN_PRICE;
+
   const handleSubmit = async (status: "draft" | "published") => {
     setError("");
     setSubmitted(false);
@@ -262,6 +270,11 @@ export default function AddListing() {
       return;
     }
 
+    if (isBelowInternationalMin || (isInternational && status === "published" && priceValue === null)) {
+      setError(`International packages must be priced at least ${formatINR(INTERNATIONAL_MIN_PRICE)}.`);
+      return;
+    }
+
     if (countWords(locationDescription) > LOCATION_DESCRIPTION_MAX_WORDS) {
       setError(
         `Location Description must be ${LOCATION_DESCRIPTION_MAX_WORDS} words or fewer. Use "Improve with AI" to shorten it.`
@@ -272,10 +285,12 @@ export default function AddListing() {
     setIsSubmitting(true);
     try {
       const formData = buildFormData(status);
+      // Publishing polishes the location description with AI on the server, so allow extra time.
+      const requestConfig = status === "published" ? { timeout: AI_REQUEST_TIMEOUT_MS } : {};
       if (isEdit && id) {
-        await PUT<PackageInterface>(API.PACKAGE.UPDATE(id), formData);
+        await PUT<PackageInterface>(API.PACKAGE.UPDATE(id), formData, requestConfig);
       } else {
-        await POST<PackageInterface>(API.PACKAGE.CREATE, formData);
+        await POST<PackageInterface>(API.PACKAGE.CREATE, formData, requestConfig);
       }
       setSavedStatus(status);
       setSubmitted(true);
@@ -504,13 +519,23 @@ export default function AddListing() {
             <Field label="Price (₹)">
               <input
                 type="number"
-                min={0}
+                min={isInternational ? INTERNATIONAL_MIN_PRICE : 0}
                 step="0.01"
                 value={price}
                 onChange={(e) => setPrice(e.target.value)}
-                className={inputClass}
-                placeholder="Package price"
+                className={cn(inputClass, isBelowInternationalMin && "border-red-400 focus:border-red-500")}
+                placeholder={isInternational ? `Min ${formatINR(INTERNATIONAL_MIN_PRICE)}` : "Package price"}
+                aria-invalid={isBelowInternationalMin}
+                aria-describedby={isInternational ? "price-hint" : undefined}
               />
+              {isInternational && (
+                <p
+                  id="price-hint"
+                  className={`mt-1.5 text-caption ${isBelowInternationalMin ? "text-red-600" : "text-neutral-500"}`}
+                >
+                  Minimum {formatINR(INTERNATIONAL_MIN_PRICE)} for international packages.
+                </p>
+              )}
             </Field>
           </div>
 
@@ -642,7 +667,7 @@ export default function AddListing() {
                   </Field>
 
                   <Field label="Hotel (Star wise)">
-                    <select
+                    <NativeSelect
                       value={day.hotelStars}
                       onChange={(e) => updateDay(dayIndex, { hotelStars: e.target.value })}
                       className={inputClass}
@@ -651,11 +676,11 @@ export default function AddListing() {
                       <option value="3">3 Star</option>
                       <option value="4">4 Star</option>
                       <option value="5">5 Star</option>
-                    </select>
+                    </NativeSelect>
                   </Field>
 
                   <Field label="Meals Option">
-                    <select
+                    <NativeSelect
                       value={day.meals}
                       onChange={(e) => updateDay(dayIndex, { meals: e.target.value })}
                       className={inputClass}
@@ -666,7 +691,7 @@ export default function AddListing() {
                           {option}
                         </option>
                       ))}
-                    </select>
+                    </NativeSelect>
                   </Field>
                 </div>
               </div>

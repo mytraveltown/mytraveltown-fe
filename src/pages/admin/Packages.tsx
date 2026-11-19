@@ -15,6 +15,7 @@ import { profileUrl } from "@/lib/utils";
 import type { AgentInterface, PackageInterface, PaginatedResponse } from "@/lib/interface";
 import { AdminPagination } from "@/components/admin/AdminPagination";
 import { packagePath } from "@/lib/routes";
+import { NativeSelect } from "@/components/NativeSelect";
 
 const PLACEHOLDER_IMAGE =
   "https://images.unsplash.com/photo-1469474968028-56623f02e42e?w=400&h=300&fit=crop";
@@ -156,7 +157,7 @@ export default function AdminPackages() {
             className="w-full pl-9 pr-3 py-2.5 rounded-lg border border-neutral-200 text-body-sm focus:outline-none focus:border-blue-500"
           />
         </div>
-        <select
+        <NativeSelect
           value={agentFilter}
           onChange={(e) => {
             setAgentFilter(e.target.value);
@@ -170,8 +171,8 @@ export default function AdminPackages() {
               {agent.company_name} ({agent.user_name})
             </option>
           ))}
-        </select>
-        <select
+        </NativeSelect>
+        <NativeSelect
           value={statusFilter}
           onChange={(e) => {
             setStatusFilter(e.target.value);
@@ -182,7 +183,7 @@ export default function AdminPackages() {
           <option value="">All statuses</option>
           <option value="published">Published</option>
           <option value="draft">Draft</option>
-        </select>
+        </NativeSelect>
         <button
           type="button"
           onClick={applySearch}

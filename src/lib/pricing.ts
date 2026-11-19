@@ -74,3 +74,6 @@ export function calculatePricing(
     balance: round2(total - advance),
   };
 }
+
+/** International packages cannot be listed below this price (INR); mirrors the backend rule. No maximum. */
+export const INTERNATIONAL_MIN_PRICE = 20000;

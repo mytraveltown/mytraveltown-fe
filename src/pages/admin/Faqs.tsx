@@ -11,6 +11,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { NativeSelect } from "@/components/NativeSelect";
 
 const PAGE_OPTIONS: { value: FaqPage; label: string }[] = [
   { value: "about", label: "About" },
@@ -204,7 +205,7 @@ export default function AdminFaqs() {
           <form id="faq-form" onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Field label="Page">
-                <select
+                <NativeSelect
                   value={form.page}
                   onChange={(e) => setForm((f) => ({ ...f, page: e.target.value as FaqPage }))}
                   className={inputClass}
@@ -214,7 +215,7 @@ export default function AdminFaqs() {
                       {p.label}
                     </option>
                   ))}
-                </select>
+                </NativeSelect>
               </Field>
               <Field label="Sort order">
                 <input

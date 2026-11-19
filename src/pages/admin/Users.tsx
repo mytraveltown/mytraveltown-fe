@@ -6,6 +6,7 @@ import { profileUrl } from "@/lib/utils";
 import { useAuth } from "@/hooks/useAuth";
 import type { PaginatedResponse, UserInterface } from "@/lib/interface";
 import { AdminPagination } from "@/components/admin/AdminPagination";
+import { NativeSelect } from "@/components/NativeSelect";
 
 const ROLE_OPTIONS = [
   { value: "", label: "All roles" },
@@ -118,7 +119,7 @@ export default function AdminUsers() {
             className="w-full pl-9 pr-3 py-2.5 rounded-lg border border-neutral-200 text-body-sm focus:outline-none focus:border-blue-500"
           />
         </div>
-        <select
+        <NativeSelect
           value={roleFilter}
           onChange={(e) => {
             setRoleFilter(e.target.value);
@@ -131,7 +132,7 @@ export default function AdminUsers() {
               {o.label}
             </option>
           ))}
-        </select>
+        </NativeSelect>
         <button
           type="button"
           onClick={applySearch}
