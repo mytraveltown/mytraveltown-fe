@@ -408,7 +408,7 @@ export const layoutText = {
 export const heroText = {
   hero: {
     imageAlt: "Taj Mahal at golden sunset",
-    title: "India's First AI TravelTech Marketplace",
+    title: "India's First AI TravelTech Marketplace.",
     fields: {
       from: "From",
       where: "Where",
